@@ -4,35 +4,75 @@ from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
-from recipes.models import (Favorite, Ingredient, IngredientAmount, Recipe,
-                            ShoppingCart, Tag)
+from recipes.models import Ingredient, IngredientAmount, Recipe, Tag
 from users.models import Subscription, User
+from django.core import exceptions
+from django.contrib.auth.password_validation import validate_password
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
     """User model (create user) Serializer."""
-    password = serializers.CharField(style={"input_type": "password"},
-                                     write_only=True)
+    password = serializers.CharField(
+        style={
+            'input_type': 'password'
+        },
+        write_only=True,
+    )
 
     class Meta:
         model = User
-        fields = ('email', 'id', 'username', 'first_name', 'last_name',
-                  'password')
+        fields = (
+            'email', 'id', 'username', 'first_name', 'last_name', 'password'
+        )
 
 
 class CustomUserSerializer(UserSerializer):
     """User model Serializer."""
-    is_subscribed = serializers.SerializerMethodField()
+    is_subscribed = serializers.BooleanField()
 
     class Meta:
         model = User
-        fields = ('email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed')
+        fields = (
+            'email', 'id', 'username', 'first_name', 'last_name',
+            'is_subscribed'
+        )
 
-    def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
-        if user.is_authenticated:
-            return Subscription.objects.filter(user=user, author=obj).exists()
+
+class SetPasswordSerializer(serializers.Serializer):
+    """Set password for User model Serializer."""
+    current_password = serializers.CharField()
+    new_password = serializers.CharField()
+
+    def validate(self, data):
+        new_password = data.get('new_password')
+
+        try:
+            validate_password(new_password)
+        except exceptions.ValidationError as err:
+            raise serializers.ValidationError(
+                {'new_password': err.messages}
+            )
+        return super().validate(data)
+
+    def update(self, instance, validated_data):
+        current_password = validated_data.get('current_password')
+        new_password = validated_data.get('new_password')
+        if not instance.check_password(current_password):
+            raise serializers.ValidationError(
+                {
+                    'current_password': 'Wrong password'
+                }
+            )
+        if current_password == new_password:
+            raise serializers.ValidationError(
+                {
+                    'new_password': 'The new password must be different from '
+                                    'the current password'
+                }
+            )
+        instance.set_password(new_password)
+        instance.save()
+        return validated_data
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -48,7 +88,7 @@ class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
-        fields = ('id', 'name', 'color', 'slug')
+        fields = '__all__'
 
 
 class IngredientAmountSerializer(serializers.ModelSerializer):
@@ -57,9 +97,14 @@ class IngredientAmountSerializer(serializers.ModelSerializer):
         queryset=Ingredient.objects.all(),
         source='ingredient.id'
     )
-    name = serializers.CharField(source='ingredient.name', read_only=True)
+    name = serializers.CharField(
+        source='ingredient.name',
+        read_only=True
+    )
     measurement_unit = serializers.CharField(
-        source='ingredient.measurement_unit', read_only=True)
+        source='ingredient.measurement_unit',
+        read_only=True
+    )
 
     class Meta:
         model = IngredientAmount
@@ -80,36 +125,39 @@ class Base64ImageField(serializers.ImageField):
 
 class RecipeSerializer(serializers.ModelSerializer):
     """Recipe model Serializer."""
-    tags = TagSerializer(read_only=True, many=True)
-    author = CustomUserSerializer(read_only=True,
-                                  default=serializers.CurrentUserDefault())
-    ingredients = IngredientAmountSerializer(many=True,
-                                             source='ingredients_amount')
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
-    image = Base64ImageField(required=False, allow_null=True)
+    tags = TagSerializer(
+        read_only=True,
+        many=True
+    )
+    author = CustomUserSerializer(
+        read_only=True,
+        default=serializers.CurrentUserDefault()
+    )
+    ingredients = IngredientAmountSerializer(
+        many=True,
+        source='ingredients_amount'
+    )
+    is_favorited = serializers.BooleanField()
+    is_in_shopping_cart = serializers.BooleanField()
+    image = Base64ImageField(
+        required=False,
+        allow_null=True
+    )
 
     class Meta:
         model = Recipe
-        fields = ('id', 'tags', 'author', 'ingredients', 'is_favorited',
-                  'is_in_shopping_cart', 'name', 'image', 'text',
-                  'cooking_time')
-
-    def get_is_favorited(self, obj):
-        user = self.context.get('request').user
-        if user.is_authenticated:
-            return Favorite.objects.filter(user=user, recipe=obj).exists()
-
-    def get_is_in_shopping_cart(self, obj):
-        user = self.context.get('request').user
-        if user.is_authenticated:
-            return ShoppingCart.objects.filter(user=user, recipe=obj).exists()
+        fields = (
+            'id', 'tags', 'author', 'ingredients', 'is_favorited',
+            'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time'
+        )
 
 
-class RecipeCreateSerializer(RecipeSerializer):
+class RecipeWriteSerializer(RecipeSerializer):
     """Recipe model (create recipe) Serializer."""
-    tags = serializers.PrimaryKeyRelatedField(many=True,
-                                              queryset=Tag.objects.all())
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Tag.objects.all()
+    )
 
     class Meta:
         model = Recipe
@@ -124,29 +172,36 @@ class RecipeCreateSerializer(RecipeSerializer):
             current_ingredient = ingredient['ingredient']['id']
             current_amount = ingredient.get('amount')
             ingredients_list.append(
-                IngredientAmount(recipe=recipe,
-                                 ingredient=current_ingredient,
-                                 amount=current_amount)
+                IngredientAmount(
+                    recipe=recipe,
+                    ingredient=current_ingredient,
+                    amount=current_amount
+                )
             )
         IngredientAmount.objects.bulk_create(ingredients_list)
 
     def validate(self, data):
         if data.get('cooking_time') <= 0:
             raise serializers.ValidationError(
-                'Cooking time cannot be less than minutes'
+                {
+                    'error': 'Cooking time cannot be less than minutes'
+                }
             )
-
         ingredients_list = []
         for ingredient in data.get('ingredients_amount'):
             if ingredient.get('amount') <= 0:
                 raise serializers.ValidationError(
-                    'The number of ingredients cannot be less than 1'
+                    {
+                        'error': 'The ingredients number cannot be less than 1'
+                    }
                 )
             ingredients_list.append(ingredient['ingredient']['id'])
 
         if len(ingredients_list) > len(set(ingredients_list)):
             raise serializers.ValidationError(
-                'Ingredients should not be repeated'
+                {
+                    'error': 'Ingredients should not be repeated'
+                }
             )
         return data
 
@@ -164,7 +219,8 @@ class RecipeCreateSerializer(RecipeSerializer):
         instance.text = validated_data.get('text', instance.text)
         instance.image = validated_data.get('image', instance.image)
         instance.cooking_time = validated_data.get(
-            'cooking_time', instance.cooking_time
+            'cooking_time',
+            instance.cooking_time
         )
         ingredients = validated_data.pop('ingredients_amount')
         tags = validated_data.pop('tags')
@@ -196,13 +252,17 @@ class ShoppingCartSerializer(RecipeSerializer):
 class SubscriptionSerializer(CustomUserSerializer):
     """Subscription model Serializer."""
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.IntegerField(source='recipes.count',
-                                             read_only=True)
+    recipes_count = serializers.IntegerField(
+        source='recipes.count',
+        read_only=True
+    )
 
     class Meta:
         model = User
-        fields = ('email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'recipes', 'recipes_count')
+        fields = (
+            'email', 'id', 'username', 'first_name', 'last_name',
+            'is_subscribed', 'recipes', 'recipes_count'
+        )
 
     def get_recipes(self, obj):
         request = self.context.get('request')
@@ -213,3 +273,22 @@ class SubscriptionSerializer(CustomUserSerializer):
         else:
             recipes = obj.recipes.all()
         return FavoriteSerializer(recipes, many=True).data
+
+
+class SubscribeSerializer(CustomUserSerializer):
+    """Subscribe Serializer."""
+
+    class Meta:
+        model = Subscription
+        fields = ('user', 'author')
+
+    def validate(self, data):
+        user = self.context.get('request').user
+        author = data.get('author')
+        if user == author:
+            raise serializers.ValidationError(
+                {
+                    'error': 'You cannot subscribe to yourself'
+                }
+            )
+        return data

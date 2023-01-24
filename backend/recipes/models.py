@@ -1,6 +1,7 @@
 from django.db import models
 
 from users.models import User
+from django.db.models import Exists, OuterRef
 
 
 class Ingredient(models.Model):
@@ -52,6 +53,31 @@ class Tag(models.Model):
         return self.name
 
 
+class RecipeQuerySet(models.QuerySet):
+    """Recipe QuerySet."""
+
+    def filter_tags(self, tags):
+        if tags:
+            return self.filter(tags__slug__in=tags).distinct()
+        return self
+
+    def add_user_annotations(self, user_id):
+        return self.annotate(
+            is_favorited=Exists(
+                Favorite.objects.filter(
+                    recipe__pk=OuterRef('pk'),
+                    user_id=user_id,
+                )
+            ),
+            is_in_shopping_cart=Exists(
+                ShoppingCart.objects.filter(
+                    recipe__pk=OuterRef('pk'),
+                    user_id=user_id,
+                )
+            ),
+        )
+
+
 class Recipe(models.Model):
     """Recipe model."""
     author = models.ForeignKey(
@@ -92,6 +118,8 @@ class Recipe(models.Model):
         auto_now_add=True,
         verbose_name='Publications Date',
     )
+
+    objects = RecipeQuerySet.as_manager()
 
     class Meta:
         ordering = ('-pub_date',)
