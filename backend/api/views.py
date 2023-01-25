@@ -1,25 +1,24 @@
-from django.db.models import Sum, F
+from django.db.models import F, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, status, viewsets, mixins
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
 
 from recipes.models import (Favorite, Ingredient, IngredientAmount, Recipe,
                             ShoppingCart, Tag)
-
 from users.models import Subscription, User
 
-from .permissions import IsAuthorOrAdminOrReadOnly
-from .serializers import (FavoriteSerializer, IngredientSerializer,
-                          RecipeWriteSerializer, RecipeSerializer,
-                          ShoppingCartSerializer, SubscriptionSerializer,
-                          TagSerializer, SubscribeSerializer,
-                          SetPasswordSerializer, CustomUserSerializer,
-                          CustomUserCreateSerializer)
 from .filters import RecipeFilter
+from .permissions import IsAuthorOrAdminOrReadOnly
+from .serializers import (CustomUserCreateSerializer, CustomUserSerializer,
+                          FavoriteSerializer, IngredientSerializer,
+                          RecipeSerializer, RecipeWriteSerializer,
+                          SetPasswordSerializer, ShoppingCartSerializer,
+                          SubscribeSerializer, SubscriptionSerializer,
+                          TagSerializer)
 
 
 class UserViewSet(
@@ -30,25 +29,16 @@ class UserViewSet(
 ):
     """User, subscription and list of subscriptions."""
 
+    queryset = User.objects.all()
+
     def get_serializer_class(self):
-        if self.action is 'subscriptions':
+        if self.action in ('subscriptions', 'subscribe'):
             return SubscriptionSerializer
-        elif self.action is 'subscribe':
-            return SubscribeSerializer
-        elif self.action is 'set_password':
-            return SetPasswordSerializer
         if self.action in ('list', 'retrieve', 'me'):
             return CustomUserSerializer
+        if self.action == 'set_password':
+            return SetPasswordSerializer
         return CustomUserCreateSerializer
-
-    def get_queryset(self):
-        user_id = self.request.user.pk
-        queryset = User.objects.add_user_annotations(user_id)
-        if self.request.query_params.get('is_subscribed'):
-            queryset = queryset.filter(is_subscribed=True)
-        else:
-            queryset = User.objects.all()
-        return queryset
 
     @action(
         detail=False,

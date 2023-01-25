@@ -1,13 +1,13 @@
 import base64
 
+from django.contrib.auth.password_validation import validate_password
+from django.core import exceptions
 from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
 from recipes.models import Ingredient, IngredientAmount, Recipe, Tag
 from users.models import Subscription, User
-from django.core import exceptions
-from django.contrib.auth.password_validation import validate_password
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
@@ -28,7 +28,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
 
 class CustomUserSerializer(UserSerializer):
     """User model Serializer."""
-    is_subscribed = serializers.BooleanField()
+    is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -36,6 +36,11 @@ class CustomUserSerializer(UserSerializer):
             'email', 'id', 'username', 'first_name', 'last_name',
             'is_subscribed'
         )
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            return Subscription.objects.filter(user=user, author=obj).exists()
 
 
 class SetPasswordSerializer(serializers.Serializer):
@@ -137,8 +142,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         many=True,
         source='ingredients_amount'
     )
-    is_favorited = serializers.BooleanField()
-    is_in_shopping_cart = serializers.BooleanField()
+    is_favorited = serializers.BooleanField(read_only=True)
+    is_in_shopping_cart = serializers.BooleanField(read_only=True)
     image = Base64ImageField(
         required=False,
         allow_null=True
@@ -161,9 +166,9 @@ class RecipeWriteSerializer(RecipeSerializer):
 
     class Meta:
         model = Recipe
-        fields = ('id', 'tags', 'author', 'ingredients', 'is_favorited',
-                  'is_in_shopping_cart', 'name', 'image', 'text',
-                  'cooking_time')
+        fields = (
+            'ingredients', 'tags', 'image', 'name', 'text', 'cooking_time'
+        )
 
     @staticmethod
     def save_ingredients(recipe, ingredients):

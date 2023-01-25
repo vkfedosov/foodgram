@@ -42,11 +42,11 @@ class FavoriteAdmin(admin.ModelAdmin):
 
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(admin.ModelAdmin):
-    """ShoppingCart model in admin."""
+    """Shopping Cart model in admin."""
     list_display = ('id', 'recipe', 'user')
 
 
 @admin.register(IngredientAmount)
 class IngredientAmountAdmin(admin.ModelAdmin):
-    """IngredientAmount model in admin."""
+    """Ingredient Amount model in admin."""
     list_display = ('id', 'ingredient', 'recipe', 'amount')

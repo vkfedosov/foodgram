@@ -1,7 +1,7 @@
 from django.db import models
+from django.db.models import Exists, OuterRef
 
 from users.models import User
-from django.db.models import Exists, OuterRef
 
 
 class Ingredient(models.Model):
@@ -171,7 +171,7 @@ class ShoppingCart(models.Model):
 
 
 class IngredientAmount(models.Model):
-    """Recipe of ingredient model."""
+    """Ingredient amount model."""
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
@@ -189,8 +189,8 @@ class IngredientAmount(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Ingredient'
-        verbose_name_plural = 'Ingredients'
+        verbose_name = 'Ingredient amount'
+        verbose_name_plural = 'Ingredients amount'
 
     def __str__(self):
         return f'{self.ingredient}: {self.amount}'

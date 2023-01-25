@@ -1,23 +1,5 @@
-from django.contrib.auth.models import AbstractUser, UserManager
+from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import Exists, OuterRef
-
-
-class SubscriptionQuerySet(models.QuerySet):
-    """Subscription QuerySet."""
-
-    def add_user_annotations(self, user_id):
-        return self.annotate(
-            is_subscribed=Exists(
-                Subscription.objects.filter(
-                    author__pk=OuterRef('pk'),
-                    user_id=user_id,
-                )
-            ),
-        )
-
-
-CustomUserManger = UserManager.from_queryset(SubscriptionQuerySet)
 
 
 class User(AbstractUser):
@@ -34,8 +16,6 @@ class User(AbstractUser):
         (AUTHORIZED, 'authorized'),
         (ADMIN, 'admin'),
     ]
-
-    objects = CustomUserManger()
 
     email = models.EmailField(
         max_length=254,
