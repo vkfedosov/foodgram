@@ -1,6 +1,5 @@
 from django.db import models
 from django.db.models import Exists, OuterRef
-
 from users.models import User
 
 
@@ -130,6 +129,32 @@ class Recipe(models.Model):
         return self.name
 
 
+class IngredientAmount(models.Model):
+    """Ingredient amount model."""
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name='ingredients_amount',
+        verbose_name='Ingredient',
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='ingredients_amount',
+        verbose_name='Recipe',
+    )
+    amount = models.IntegerField(
+        verbose_name='Amount',
+    )
+
+    class Meta:
+        verbose_name = 'Ingredient amount'
+        verbose_name_plural = 'Ingredients amount'
+
+    def __str__(self):
+        return f'{self.ingredient}: {self.amount}'
+
+
 class Favorite(models.Model):
     """Favorite model."""
     recipe = models.ForeignKey(
@@ -168,29 +193,3 @@ class ShoppingCart(models.Model):
     class Meta:
         verbose_name = 'Shopping Cart'
         verbose_name_plural = 'Shopping Carts'
-
-
-class IngredientAmount(models.Model):
-    """Ingredient amount model."""
-    ingredient = models.ForeignKey(
-        Ingredient,
-        on_delete=models.CASCADE,
-        related_name='ingredients_amount',
-        verbose_name='Ingredient',
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='ingredients_amount',
-        verbose_name='Recipe',
-    )
-    amount = models.IntegerField(
-        verbose_name='Amount',
-    )
-
-    class Meta:
-        verbose_name = 'Ingredient amount'
-        verbose_name_plural = 'Ingredients amount'
-
-    def __str__(self):
-        return f'{self.ingredient}: {self.amount}'

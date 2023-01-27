@@ -4,11 +4,10 @@ from django.contrib.auth.password_validation import validate_password
 from django.core import exceptions
 from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
-
 from recipes.models import (Favorite, Ingredient, IngredientAmount, Recipe,
                             ShoppingCart, Tag)
+from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 from users.models import Subscription, User
 
 
@@ -79,6 +78,59 @@ class SetPasswordSerializer(serializers.Serializer):
         instance.set_password(new_password)
         instance.save()
         return validated_data
+
+
+class SubscriptionUserSerializer(CustomUserSerializer):
+    """Subscription user Serializer."""
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.IntegerField(
+        source='recipes.count',
+        read_only=True
+    )
+
+    class Meta:
+        model = User
+        fields = (
+            'email', 'id', 'username', 'first_name', 'last_name',
+            'is_subscribed', 'recipes', 'recipes_count'
+        )
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        recipes_limit = request.GET.get('recipes_limit')
+
+        if recipes_limit:
+            recipes = obj.recipes.all()[:(int(recipes_limit))]
+        else:
+            recipes = obj.recipes.all()
+        return RecipeShortSerializer(recipes, many=True).data
+
+
+class SubscriptionSerializer(CustomUserSerializer):
+    """Subscription model Serializer."""
+
+    class Meta:
+        model = Subscription
+        fields = ('user', 'author')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Subscription.objects.all(),
+                fields=('user', 'author'),
+                message='You are already subscribed to the author'
+            )
+        ]
+
+    def validate(self, data):
+        user = data.get('user')
+        author = data.get('author')
+
+        if user == author:
+            raise serializers.ValidationError(
+                {
+                    'error': 'You cannot subscribe to yourself'
+                }
+            )
+        return data
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -292,56 +344,3 @@ class ShoppingCartSerializer(RecipeShortSerializer):
                 message='You have already added the recipe to shopping cart'
             )
         ]
-
-
-class SubscriptionUserSerializer(CustomUserSerializer):
-    """Subscription user Serializer."""
-    recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.IntegerField(
-        source='recipes.count',
-        read_only=True
-    )
-
-    class Meta:
-        model = User
-        fields = (
-            'email', 'id', 'username', 'first_name', 'last_name',
-            'is_subscribed', 'recipes', 'recipes_count'
-        )
-
-    def get_recipes(self, obj):
-        request = self.context.get('request')
-        recipes_limit = request.GET.get('recipes_limit')
-
-        if recipes_limit:
-            recipes = obj.recipes.all()[:(int(recipes_limit))]
-        else:
-            recipes = obj.recipes.all()
-        return RecipeShortSerializer(recipes, many=True).data
-
-
-class SubscriptionSerializer(CustomUserSerializer):
-    """Subscription model Serializer."""
-
-    class Meta:
-        model = Subscription
-        fields = ('user', 'author')
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Subscription.objects.all(),
-                fields=('user', 'author'),
-                message='You are already subscribed to the author'
-            )
-        ]
-
-    def validate(self, data):
-        user = data.get('user')
-        author = data.get('author')
-
-        if user == author:
-            raise serializers.ValidationError(
-                {
-                    'error': 'You cannot subscribe to yourself'
-                }
-            )
-        return data
