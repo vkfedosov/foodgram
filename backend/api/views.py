@@ -64,7 +64,7 @@ class UserViewSet(
             {
                 'detail': 'Password changed successfully'
             },
-            status=status.HTTP_204_NO_CONTENT,
+            status=status.HTTP_204_NO_CONTENT
         )
 
     @action(
