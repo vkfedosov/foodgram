@@ -15,10 +15,10 @@ from .filters import RecipeFilter
 from .permissions import IsAuthorOrAdminOrReadOnly
 from .serializers import (CustomUserCreateSerializer, CustomUserSerializer,
                           FavoriteSerializer, IngredientSerializer,
-                          RecipeSerializer, RecipeWriteSerializer,
-                          SetPasswordSerializer, ShoppingCartSerializer,
-                          SubscribeSerializer, SubscriptionSerializer,
-                          TagSerializer)
+                          RecipeSerializer, RecipeShortSerializer,
+                          RecipeWriteSerializer, SetPasswordSerializer,
+                          ShoppingCartSerializer, SubscriptionSerializer,
+                          SubscriptionUserSerializer, TagSerializer)
 
 
 class UserViewSet(
@@ -33,7 +33,7 @@ class UserViewSet(
 
     def get_serializer_class(self):
         if self.action in ('subscriptions', 'subscribe'):
-            return SubscriptionSerializer
+            return SubscriptionUserSerializer
         if self.action in ('list', 'retrieve', 'me'):
             return CustomUserSerializer
         if self.action == 'set_password':
@@ -80,17 +80,7 @@ class UserViewSet(
             'user': user.pk,
             'author': author.pk
         }
-        serializer = SubscribeSerializer(
-            data=data,
-            context={
-                'request': request
-            },
-        )
-        if Subscription.objects.filter(user=user, author=author).exists():
-            message = {
-                'error': 'You are already subscribed to the author'
-            }
-            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+        serializer = SubscriptionSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         serializer = self.get_serializer(author)
@@ -100,17 +90,11 @@ class UserViewSet(
     def unsubscribe(self, request, pk):
         user = request.user
         author = get_object_or_404(User, pk=pk)
-        subscribe = Subscription.objects.filter(user=user, author=author)
-        if subscribe.exists():
-            subscribe.delete()
-            message = {
-                'detail': 'You have successfully unsubscribed'
-            }
-            return Response(message, status=status.HTTP_204_NO_CONTENT)
+        Subscription.objects.filter(user=user, author=author).delete()
         message = {
-            'error': 'You are already unsubscribed to the author'
+            'detail': 'You have successfully unsubscribed'
         }
-        return Response(message, status=status.HTTP_400_BAD_REQUEST)
+        return Response(message, status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
@@ -119,9 +103,11 @@ class UserViewSet(
     )
     def subscriptions(self, request):
         user = request.user
-        subscriptions = User.objects.filter(subscribing__user=user)
+        subscriptions = User.objects.filter(
+            subscribing__user=user
+        ).prefetch_related('recipes')
         page = self.paginate_queryset(subscriptions)
-        serializer = self.get_serializer(page, many=True, )
+        serializer = self.get_serializer(page, many=True)
         return self.get_paginated_response(serializer.data)
 
 
@@ -135,7 +121,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """Ingredient list."""
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = [filters.SearchFilter]
     search_fields = ('^name',)
 
 
@@ -146,30 +132,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filterset_class = RecipeFilter
 
     def get_serializer_class(self):
+        if self.action in ('favorite', 'shopping_cart'):
+            return RecipeShortSerializer
         if self.action in ('create', 'partial_update'):
             return RecipeWriteSerializer
         return RecipeSerializer
 
     def get_queryset(self):
-        tags = self.request.query_params.getlist('tags')
-        author = self.request.query_params.get('author', None)
         user_id = self.request.user.pk
-        if tags:
-            queryset = Recipe.objects.filter_tags(tags)
-        if author:
-            queryset = Recipe.objects.filter(author=author)
-        queryset = Recipe.objects.add_user_annotations(user_id)
-        if self.request.query_params.get('is_favorited'):
-            queryset = queryset.filter(is_favorited=True)
-        if self.request.query_params.get('is_in_shopping_cart'):
-            queryset = queryset.filter(is_in_shopping_cart=True)
+        queryset = Recipe.objects.add_user_annotations(user_id).select_related(
+            'author'
+        ).prefetch_related(
+            'ingredients', 'tags'
+        )
         return queryset
-
-
-class FavoriteViewSet(viewsets.GenericViewSet):
-    """Favorite Recipes."""
-    queryset = Recipe.objects.all()
-    serializer_class = FavoriteSerializer
 
     @action(
         detail=True,
@@ -179,36 +155,25 @@ class FavoriteViewSet(viewsets.GenericViewSet):
     def favorite(self, request, pk):
         user = request.user
         recipe = get_object_or_404(Recipe, pk=pk)
+        data = {
+            'user': user.pk,
+            'recipe': recipe.pk
+        }
+        serializer = FavoriteSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         serializer = self.get_serializer(recipe)
-        if Favorite.objects.filter(user=user, recipe=recipe).exists():
-            message = {
-                'error': 'You have already added the recipe to favorites'
-            }
-            return Response(message, status=status.HTTP_400_BAD_REQUEST)
-        Favorite.objects.get_or_create(user=user, recipe=recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @favorite.mapping.delete
     def unfavorite(self, request, pk):
         user = request.user
         recipe = get_object_or_404(Recipe, pk=pk)
-        favorite = Favorite.objects.filter(user=user, recipe=recipe)
-        if favorite.exists():
-            favorite.delete()
-            message = {
-                'detail': 'You have successfully unfavorited'
-            }
-            return Response(message, status=status.HTTP_204_NO_CONTENT)
+        Favorite.objects.filter(user=user, recipe=recipe).delete()
         message = {
-            'error': 'You are already removed a recipe from favorites'
+            'detail': 'You have successfully unfavorited'
         }
-        return Response(message, status=status.HTTP_400_BAD_REQUEST)
-
-
-class ShoppingCartViewSet(viewsets.GenericViewSet):
-    """Shopping cart and list of ingredients to buy."""
-    queryset = Recipe.objects.all()
-    serializer_class = ShoppingCartSerializer
+        return Response(message, status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
@@ -218,32 +183,26 @@ class ShoppingCartViewSet(viewsets.GenericViewSet):
     def shopping_cart(self, request, pk):
         user = request.user
         recipe = get_object_or_404(Recipe, pk=pk)
+        data = {
+            'user': user.pk,
+            'recipe': recipe.pk
+        }
+        serializer = ShoppingCartSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         serializer = self.get_serializer(recipe)
-        if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
-            message = {
-                'error': 'You have already added the recipe to shopping cart'
-            }
-            return Response(message, status=status.HTTP_400_BAD_REQUEST)
-        ShoppingCart.objects.get_or_create(user=user, recipe=recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk):
         user = request.user
         recipe = get_object_or_404(Recipe, pk=pk)
-        shopping_cart = ShoppingCart.objects.filter(user=user, recipe=recipe)
-        if shopping_cart.exists():
-            shopping_cart.delete()
-            message = {
-                'detail':
-                    'You have successfully removed recipe from shopping cart'
-            }
-            return Response(message, status=status.HTTP_204_NO_CONTENT)
+        ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
         message = {
-            'error':
-                'You have successfully removed a recipe from shopping cart'
+            'detail':
+                'You have successfully removed recipe from shopping cart'
         }
-        return Response(message, status=status.HTTP_400_BAD_REQUEST)
+        return Response(message, status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,

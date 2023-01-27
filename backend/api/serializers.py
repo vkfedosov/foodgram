@@ -5,8 +5,10 @@ from django.core import exceptions
 from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
-from recipes.models import Ingredient, IngredientAmount, Recipe, Tag
+from recipes.models import (Favorite, Ingredient, IngredientAmount, Recipe,
+                            ShoppingCart, Tag)
 from users.models import Subscription, User
 
 
@@ -40,7 +42,7 @@ class CustomUserSerializer(UserSerializer):
     def get_is_subscribed(self, obj):
         user = self.context.get('request').user
         if user.is_authenticated:
-            return Subscription.objects.filter(user=user, author=obj).exists()
+            return user.subscriber.filter(user=user, author=obj).exists()
 
 
 class SetPasswordSerializer(serializers.Serializer):
@@ -50,7 +52,6 @@ class SetPasswordSerializer(serializers.Serializer):
 
     def validate(self, data):
         new_password = data.get('new_password')
-
         try:
             validate_password(new_password)
         except exceptions.ValidationError as err:
@@ -124,7 +125,6 @@ class Base64ImageField(serializers.ImageField):
             img_format, img_str = data.split(';base64,')
             ext = img_format.split('/')[-1]
             data = ContentFile(base64.b64decode(img_str), name='temp.' + ext)
-
         return super().to_internal_value(data)
 
 
@@ -186,14 +186,16 @@ class RecipeWriteSerializer(RecipeSerializer):
         IngredientAmount.objects.bulk_create(ingredients_list)
 
     def validate(self, data):
-        if data.get('cooking_time') <= 0:
+        cooking_time = data.get('cooking_time')
+        if cooking_time <= 0:
             raise serializers.ValidationError(
                 {
                     'error': 'Cooking time cannot be less than minutes'
                 }
             )
         ingredients_list = []
-        for ingredient in data.get('ingredients_amount'):
+        ingredients_amount = data.get('ingredients_amount')
+        for ingredient in ingredients_amount:
             if ingredient.get('amount') <= 0:
                 raise serializers.ValidationError(
                     {
@@ -238,24 +240,62 @@ class RecipeWriteSerializer(RecipeSerializer):
         return instance
 
 
-class FavoriteSerializer(RecipeSerializer):
+class RecipeShortSerializer(RecipeSerializer):
+    """Recipe short Serializer."""
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class FavoriteSerializer(RecipeShortSerializer):
     """Favorite model Serializer."""
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        write_only=True,
+    )
+    recipe = serializers.PrimaryKeyRelatedField(
+        queryset=Recipe.objects.all(),
+        write_only=True,
+    )
 
     class Meta:
-        model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time')
+        model = Favorite
+        fields = ('user', 'recipe')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Favorite.objects.all(),
+                fields=('user', 'recipe'),
+                message='You have already added the recipe to favorites'
+            )
+        ]
 
 
-class ShoppingCartSerializer(RecipeSerializer):
+class ShoppingCartSerializer(RecipeShortSerializer):
     """ShoppingCart model Serializer."""
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        write_only=True,
+    )
+    recipe = serializers.PrimaryKeyRelatedField(
+        queryset=Recipe.objects.all(),
+        write_only=True,
+    )
 
     class Meta:
-        model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time')
+        model = ShoppingCart
+        fields = ('user', 'recipe')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=ShoppingCart.objects.all(),
+                fields=('user', 'recipe'),
+                message='You have already added the recipe to shopping cart'
+            )
+        ]
 
 
-class SubscriptionSerializer(CustomUserSerializer):
-    """Subscription model Serializer."""
+class SubscriptionUserSerializer(CustomUserSerializer):
+    """Subscription user Serializer."""
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.IntegerField(
         source='recipes.count',
@@ -277,19 +317,27 @@ class SubscriptionSerializer(CustomUserSerializer):
             recipes = obj.recipes.all()[:(int(recipes_limit))]
         else:
             recipes = obj.recipes.all()
-        return FavoriteSerializer(recipes, many=True).data
+        return RecipeShortSerializer(recipes, many=True).data
 
 
-class SubscribeSerializer(CustomUserSerializer):
-    """Subscribe Serializer."""
+class SubscriptionSerializer(CustomUserSerializer):
+    """Subscription model Serializer."""
 
     class Meta:
         model = Subscription
         fields = ('user', 'author')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Subscription.objects.all(),
+                fields=('user', 'author'),
+                message='You are already subscribed to the author'
+            )
+        ]
 
     def validate(self, data):
-        user = self.context.get('request').user
+        user = data.get('user')
         author = data.get('author')
+
         if user == author:
             raise serializers.ValidationError(
                 {
