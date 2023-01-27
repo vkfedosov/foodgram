@@ -98,7 +98,6 @@ class SubscriptionUserSerializer(CustomUserSerializer):
     def get_recipes(self, obj):
         request = self.context.get('request')
         recipes_limit = request.GET.get('recipes_limit')
-
         if recipes_limit:
             recipes = obj.recipes.all()[:(int(recipes_limit))]
         else:
@@ -123,7 +122,6 @@ class SubscriptionSerializer(CustomUserSerializer):
     def validate(self, data):
         user = data.get('user')
         author = data.get('author')
-
         if user == author:
             raise serializers.ValidationError(
                 {
@@ -255,7 +253,6 @@ class RecipeWriteSerializer(RecipeSerializer):
                     }
                 )
             ingredients_list.append(ingredient['ingredient']['id'])
-
         if len(ingredients_list) > len(set(ingredients_list)):
             raise serializers.ValidationError(
                 {
