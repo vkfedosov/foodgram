@@ -7,12 +7,12 @@ class Ingredient(models.Model):
     """Ingredient model."""
     name = models.CharField(
         blank=False,
-        max_length=50,
+        max_length=150,
         verbose_name='Name',
     )
     measurement_unit = models.CharField(
         blank=False,
-        max_length=50,
+        max_length=150,
         verbose_name='Measurement Unit',
     )
 

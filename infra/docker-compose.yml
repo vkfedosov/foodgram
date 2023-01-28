@@ -9,15 +9,15 @@ services:
       - ./.env
 
   backend:
-   image: vkfedosov/foodgram_backend:latest
-   restart: always
-   volumes:
-     - static_value:/app/static/
-     - media_value:/app/media/
-   depends_on:
-     - db
-   env_file:
-     - ./.env
+    image: vkfedosov/foodgram_backend:latest
+    restart: always
+    volumes:
+      - static_value:/app/static/
+      - media_value:/app/media/
+    depends_on:
+      - db
+    env_file:
+      - ./.env
 
   frontend:
     image: vkfedosov/foodgram_frontend:latest
