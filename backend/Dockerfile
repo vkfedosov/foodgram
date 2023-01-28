@@ -12,4 +12,4 @@ WORKDIR /app
 
 CMD ["gunicorn", "foodgram.wsgi:application", "--bind", "0:8000"]
 
-ENTRYPOINT ["bash", "-c", "./entrypoint.sh"]
+ENTRYPOINT ["bash", "./entrypoint.sh"]

@@ -7,7 +7,7 @@ services:
       - data_value:/var/lib/postgresql/data/
     env_file:
       - ./.env
- 
+
   backend:
    image: vkfedosov/foodgram_backend:latest
    restart: always
@@ -25,11 +25,9 @@ services:
       - ../frontend/:/app/result_build/
     depends_on:
       - db
-    env_file:
-      - ./.env
 
   nginx:
-    image: nginx:1.19.3
+    image: nginx:1.21.3-alpine
     ports:
       - "80:80"
     volumes:
@@ -38,6 +36,8 @@ services:
       - ../docs/:/usr/share/nginx/html/api/docs/
       - static_value:/var/html/static/
       - media_value:/var/html/media/
+    env_file:
+      - ./.env
     depends_on:
       - backend
       - frontend

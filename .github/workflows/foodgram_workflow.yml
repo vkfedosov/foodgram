@@ -83,7 +83,8 @@ jobs:
             echo LOCALHOST=${{ secrets.LOCALHOST }} >> .env
             echo PORT=${{ secrets.PORT }} >> .env
             echo UPSTREAM=${{ secrets.UPSTREAM }} >> .env
-            sudo docker-compose up -d 
+            sudo docker-compose up -d
+            sudo docker rm $(docker ps --filter status=exited -q)
 
   send_message:
     name: Send message to Telegram
