@@ -46,5 +46,4 @@ server {
       location = /50x.html {
         root   /var/html/frontend/;
       }
-
 }
