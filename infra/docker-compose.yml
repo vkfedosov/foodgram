@@ -32,8 +32,8 @@ services:
       - "80:80"
     volumes:
       - ./nginx/templates/:/etc/nginx/templates
-      - ../docs/:/usr/share/nginx/html/api/docs/
       - ../frontend/build:/usr/share/nginx/html/
+      - ../docs/:/usr/share/nginx/html/api/docs/
       - static_value:/var/html/static/
       - media_value:/var/html/media/
     env_file:
