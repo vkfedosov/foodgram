@@ -1,6 +1,6 @@
 server {
     listen ${PORT};
-    server_name ${LOCALHOST};
+    server_name ${HOST};
     server_tokens off;
 
     location /admin/ {
