@@ -139,12 +139,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user_id = self.request.user.pk
-        queryset = Recipe.objects.add_user_annotations(user_id).select_related(
+        return Recipe.objects.add_user_annotations(user_id).select_related(
             'author'
         ).prefetch_related(
             'ingredients', 'tags'
         )
-        return queryset
 
     @action(
         detail=True,
@@ -219,7 +218,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         data = []
         for ingredient in ingredients:
             data.append(
-                f'{ingredient["name"]}, '
+                f'{ingredient["name"]} - '
                 f'{ingredient["amount"]} '
                 f'{ingredient["measurement_unit"]}'
             )

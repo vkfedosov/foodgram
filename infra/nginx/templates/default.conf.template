@@ -1,10 +1,10 @@
 server {
-    listen 80;
-    server_name 158.160.20.23;
+    listen ${PORT};
+    server_name ${SERVERHOST};
     server_tokens off;
 
     location /admin/ {
-        proxy_pass http://backend:8000/admin/;
+        proxy_pass http://${UPSTREAM}/admin/;
     }
 
     location /api/docs/ {
@@ -17,7 +17,7 @@ server {
         proxy_set_header        X-Real-IP $remote_addr;
         proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header        X-Forwarded-Proto $scheme;
-        proxy_pass http://backend:8000/api/;
+        proxy_pass http://${UPSTREAM}/api/;
     }
 
     location /media/ {
