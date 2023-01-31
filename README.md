@@ -1,6 +1,6 @@
 # Проект продуктовый помощник Foodgram
 
-[![](https://github.com/vkfedosov/foodgram/actions/workflows/foodgram_workflow.yml/badge.svg)](https://github.com/vkfedosov/foodgram/actions/workflows/foodgram_workflow.yml)
+[![](https://github.com/vkfedosov/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg)](https://github.com/vkfedosov/foodgram-project-react/actions/workflows/foodgram_workflow.yml)
 
 Foodgram - продуктовый помощник, позволяет публиковать рецепты,
 подписываться на публикации других пользователей, добавлять понравившиеся
@@ -91,7 +91,7 @@ Foodgram - продуктовый помощник, позволяет публ�
 * [flake8-broken-line 0.6.0](https://pypi.org/project/flake8-broken-line/#files)
 * [flake8-isort 6.0.0](https://pypi.org/project/flake8-isort/#files)
 * [flake8-return 1.2.0](https://pypi.org/project/flake8-return/#files)
-* [flake8 6.0.0](https://pypi.org/project/flake8/#files)
+* [flake8 5.0.4](https://pypi.org/project/flake8/#files)
 * [gunicorn 20.1.0](https://pypi.org/project/gunicorn/#files)
 * [isort 5.11.4](https://pypi.org/project/isort/#files)
 * [pep8-naming 0.13.3](https://pypi.org/project/pep8-naming/#files)
