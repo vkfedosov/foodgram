@@ -216,6 +216,22 @@ sudo apt install docker-compose -y
 sudo docker-compose --version
 ```
 
+* На сервере создать директорию ```nginx/templates/``` :
+```bash
+mkdir -p nginx/templates/
+```
+
+* Скопировать файлы ```docker-compose.yaml``` и ```default.conf.template```
+из проекта (локально) на сервер:
+  * перейти в директорию ```infra``` и выполните:
+  ```bash
+  scp docker-compose.yaml <username>@<ip_address>:/home/<username>/docker-compose.yaml
+  ```
+  * перейти в директорию ```infra/nginx/templates``` и выполните:
+  ```bash
+  scp default.conf.template <username>@<ip_address>:/home/<username>/nginx/templates/default.conf.template
+  ```
+
 ## После успешного деплоя
 * Создать суперпользователя:
 ```bash
