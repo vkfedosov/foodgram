@@ -83,6 +83,7 @@ jobs:
             echo LOCALHOST=${{ secrets.LOCALHOST }} >> .env
             echo PORT=${{ secrets.PORT }} >> .env
             echo UPSTREAM=${{ secrets.UPSTREAM }} >> .env
+            echo SERVERHOST=${{ secrets.SERVERHOST }} >> .env
             sudo docker-compose up -d
 
   send_message:
