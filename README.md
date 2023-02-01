@@ -224,7 +224,7 @@ mkdir -p nginx/templates/
 ```default.conf.template``` из проекта (локально) на сервер:
   * перейти в директорию ```infra``` и выполните:
   ```bash
-  scp docker-compose.yaml <username>@<ip_address>:/home/<username>/docker-compose.yaml
+  scp docker-compose.yml <username>@<ip_address>:/home/<username>/docker-compose.yml
   scp .env <username>@<ip_address>:/home/<username>/.env
   ```
   * перейти в директорию ```infra/nginx/templates``` и выполните:
