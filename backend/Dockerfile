@@ -10,4 +10,4 @@ COPY ./ /app
 
 CMD ["gunicorn", "foodgram.wsgi:application", "--bind", "0:8000"]
 
-ENTRYPOINT ["bash", "./entrypoint.sh"]
+ENTRYPOINT [ "bash", "./entrypoint.sh" ]

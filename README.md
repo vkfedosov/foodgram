@@ -186,6 +186,12 @@ sudo docker-compose up
 ```
 
 ## После успешного деплоя
+
+* Импортировать данные:
+```bash
+sudo docker-compose exec backend python manage.py import_data
+```
+
 * Создать суперпользователя:
 ```bash
 sudo docker-compose exec backend python manage.py createsuperuser
