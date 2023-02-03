@@ -10,14 +10,15 @@ services:
 
   backend:
     image: vkfedosov/foodgram_backend:latest
-    restart: always
+    restart: unless-stopped
+    entrypoint: ["bash", "-c", "./entrypoint.sh"]
     volumes:
       - static_value:/app/static/
       - media_value:/app/media/
-    depends_on:
-      - db
     env_file:
       - ./.env
+    depends_on:
+      - db
 
   frontend:
     image: vkfedosov/foodgram_frontend:latest
@@ -28,6 +29,7 @@ services:
 
   nginx:
     image: nginx:1.21.3-alpine
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:

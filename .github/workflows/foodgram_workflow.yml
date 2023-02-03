@@ -85,6 +85,7 @@ jobs:
             echo UPSTREAM=${{ secrets.UPSTREAM }} >> .env
             echo SERVERHOST=${{ secrets.SERVERHOST }} >> .env
             sudo docker-compose up -d
+            sudo docker-compose exec -T backend python manage.py import_data
 
   send_message:
     name: Send message to Telegram
