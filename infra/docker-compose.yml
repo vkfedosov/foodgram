@@ -11,7 +11,7 @@ services:
   backend:
     image: vkfedosov/foodgram_backend:latest
     restart: unless-stopped
-    entrypoint: ./entrypoint.sh
+    entrypoint: [ "bash", "-c", "./entrypoint.sh"]
     volumes:
       - static_value:/app/static/
       - media_value:/app/media/
