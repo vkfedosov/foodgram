@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from users.models import Subscription, User
 
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
 from .permissions import IsAuthorOrAdminOrReadOnly
 from .serializers import (CustomUserCreateSerializer, CustomUserSerializer,
                           FavoriteSerializer, IngredientSerializer,
@@ -114,8 +114,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """Ingredient list."""
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ('^name',)
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = IngredientFilter
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):

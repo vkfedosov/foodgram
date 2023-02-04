@@ -1,5 +1,13 @@
 import django_filters
-from recipes.models import Recipe, Tag
+from recipes.models import Recipe, Tag, Ingredient
+
+
+class IngredientFilter(django_filters.FilterSet):
+    name = django_filters.CharFilter(lookup_expr='startswith')
+
+    class Meta:
+        model = Ingredient
+        fields = ('name',)
 
 
 class RecipeFilter(django_filters.FilterSet):
@@ -21,7 +29,7 @@ class RecipeFilter(django_filters.FilterSet):
 
     class Meta:
         model = Recipe
-        fields = ('author', )
+        fields = ('author',)
 
     def get_is_favorited(self, queryset, name, value):
         user = self.request.user
