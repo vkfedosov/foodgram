@@ -198,7 +198,7 @@ sudo docker-compose exec backend python manage.py createsuperuser
 ```
 
 ## Набор доступных эндпоинтов для API Foodgram:
-- ```api/docs/redoc``` - подробная документация по работе API Foodgram;
+- ```api/docs/``` - подробная документация по работе API Foodgram;
 - ```api/tags/``` - получение, списка тегов (GET);
 - ```api/ingredients/``` - получение, списка ингредиентов (GET);
 - ```api/ingredients/``` - получение ингредиента с соответствующим id (GET);

@@ -3,6 +3,7 @@ from recipes.models import Ingredient, Recipe, Tag
 
 
 class IngredientFilter(django_filters.FilterSet):
+    """Filter for Ingredients."""
     name = django_filters.CharFilter(lookup_expr='startswith')
 
     class Meta:
@@ -29,11 +30,11 @@ class RecipeFilter(django_filters.FilterSet):
 
     class Meta:
         model = Recipe
-        fields = ('author',)
+        fields = ('tags', 'author', 'is_favorited', 'is_in_shopping_cart')
 
     def get_is_favorited(self, queryset, name, value):
         user = self.request.user
-        if value == 1:
+        if value and user.is_authenticated:
             return queryset.filter(
                 favorite__user=user,
                 is_favorited=True,
@@ -42,7 +43,7 @@ class RecipeFilter(django_filters.FilterSet):
 
     def get_is_in_shopping_cart(self, queryset, name, value):
         user = self.request.user
-        if value == 1:
+        if value and user.is_authenticated:
             return queryset.filter(
                 shopping_cart__user=user,
                 is_in_shopping_cart=True,
