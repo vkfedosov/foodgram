@@ -1,6 +1,6 @@
 # Проект продуктовый помощник Foodgram
 
-[![](https://github.com/vkfedosov/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg)](https://github.com/vkfedosov/foodgram-project-react/actions/workflows/foodgram_workflow.yml)
+[![](https://github.com/vkfedosov/foodgram/actions/workflows/foodgram_workflow.yml/badge.svg)](https://github.com/vkfedosov/foodgram/actions/workflows/foodgram_workflow.yml)
 
 Foodgram - продуктовый помощник, позволяет публиковать рецепты,
 подписываться на публикации других пользователей, добавлять понравившиеся
@@ -165,12 +165,12 @@ ssh <username>@<ip_address>
 ## Начало работы
 * Клонировать репозиторий на сервер:
 ```bash
-git clone git@github.com:vkfedosov/foodgram-project-react.git
+git clone git@github.com:vkfedosov/foodgram.git
 ```
 
 * Перейти в директорию ```infra```:
 ```bash
-cd foodgram-project-react/infra
+cd foodgram/infra
 ```
 
 * В директории ```infra```, создать файл ```.env``` с переменными окружения,
